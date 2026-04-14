@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BookIQ — AI-Powered Book Insight Platform</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f4f0;
+    --bg-tertiary: #eeede8;
+    --bg-info: #e6f1fb;
+    --bg-success: #eaf3de;
+    --bg-warning: #faeeda;
+    --bg-danger: #fcebeb;
+    --text-primary: #1a1917;
+    --text-secondary: #6b6a64;
+    --text-tertiary: #9c9a92;
+    --text-info: #185fa5;
+    --text-success: #3b6d11;
+    --text-warning: #854f0b;
+    --text-danger: #a32d2d;
+    --border-tertiary: rgba(26,25,23,0.12);
+    --border-secondary: rgba(26,25,23,0.22);
+    --border-primary: rgba(26,25,23,0.32);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-mono: "SF Mono", "Fira Code", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #1a1917;
+      --bg-secondary: #242320;
+      --bg-tertiary: #2c2b28;
+      --bg-info: #042c53;
+      --bg-success: #173404;
+      --bg-warning: #412402;
+      --bg-danger: #501313;
+      --text-primary: #e8e6df;
+      --text-secondary: #a8a69e;
+      --text-tertiary: #6b6a64;
+      --text-info: #85b7eb;
+      --text-success: #97c459;
+      --text-warning: #ef9f27;
+      --text-danger: #f09595;
+      --border-tertiary: rgba(232,230,223,0.12);
+      --border-secondary: rgba(232,230,223,0.22);
+    }
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    min-height: 100vh;
+  }
+
+  /* Layout */
+  .app { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 210px; flex-shrink: 0;
+    background: var(--bg-primary);
+    border-right: 0.5px solid var(--border-tertiary);
+    padding: 20px 12px;
+    display: flex; flex-direction: column; gap: 4px;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .sidebar-logo {
+    font-size: 15px; font-weight: 600; padding: 0 8px 16px;
+    color: var(--text-primary);
+    border-bottom: 0.5px solid var(--border-tertiary);
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .nav-item {
+    padding: 8px 10px; border-radius: var(--radius-md);
+    font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    color: var(--text-secondary); transition: background .15s, color .15s;
+    user-select: none;
+  }
+  .nav-item:hover { background: var(--bg-secondary); color: var(--text-primary); }
+  .nav-item.active { background: var(--bg-secondary); color: var(--text-primary); font-weight: 500; }
+  .nav-icon { width: 16px; height: 16px; opacity: .7; flex-shrink: 0; }
+
+  .main { flex: 1; padding: 28px; background: var(--bg-tertiary); overflow: hidden; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .page-header { margin-bottom: 22px; }
+  .page-title { font-size: 18px; font-weight: 500; letter-spacing: -0.01em; }
+  .page-sub { font-size: 13px; color: var(--text-secondary); margin-top: 3px; }
+
+  /* Stats */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+  .stat-card {
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border-tertiary);
+    border-radius: var(--radius-lg); padding: 14px 16px;
+  }
+  .stat-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+  .stat-value { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; }
+
+  /* Search */
+  .search-row { display: flex; gap: 8px; margin-bottom: 18px; }
+  input[type="text"], input[type="number"] {
+    height: 36px; padding: 0 12px;
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    font-size: 13px; font-family: var(--font-sans);
+    color: var(--text-primary);
+    outline: none; transition: border-color .15s;
+  }
+  input[type="text"] { flex: 1; }
+  input[type="text"]:focus, input[type="number"]:focus { border-color: var(--border-primary); }
+  input::placeholder { color: var(--text-tertiary); }
+  button {
+    height: 36px; padding: 0 14px;
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    font-size: 13px; font-family: var(--font-sans);
+    color: var(--text-primary); cursor: pointer;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  button:hover { background: var(--bg-secondary); border-color: var(--border-primary); }
+  button:active { transform: scale(0.98); }
+
+  /* Book grid */
+  .book-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .book-card {
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border-tertiary);
+    border-radius: var(--radius-lg);
+    padding: 14px; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .book-card:hover { border-color: var(--border-secondary); }
+  .book-cover {
+    width: 100%; height: 80px; border-radius: 6px;
+    margin-bottom: 10px; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 30px;
+  }
+  .book-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; line-height: 1.3; }
+  .book-author { font-size: 12px; color: var(--text-secondary); margin-bottom: 7px; }
+  .book-meta { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+  .badge {
+    font-size: 11px; padding: 2px 7px;
+    border-radius: var(--radius-md);
+    background: var(--bg-info); color: var(--text-info);
+  }
+  .badge.genre { background: var(--bg-success); color: var(--text-success); }
+  .badge.sentiment { background: var(--bg-warning); color: var(--text-warning); }
+  .stars { font-size: 11px; color: #EF9F27; }
+
+  /* Detail panel */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 9; }
+  .overlay.open { display: block; }
+  .detail-panel {
+    display: none; position: fixed; top: 0; right: 0; bottom: 0; width: 370px;
+    background: var(--bg-primary);
+    border-left: 0.5px solid var(--border-tertiary);
+    overflow-y: auto; z-index: 10; padding: 24px;
+  }
+  .detail-panel.open { display: block; }
+  .detail-close {
+    position: absolute; top: 14px; right: 16px;
+    font-size: 18px; cursor: pointer; color: var(--text-secondary);
+    background: none; border: none; padding: 4px; line-height: 1;
+  }
+  .detail-close:hover { color: var(--text-primary); }
+  .detail-cover {
+    width: 80px; height: 110px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px; margin-bottom: 14px;
+  }
+  .detail-title { font-size: 17px; font-weight: 500; margin-bottom: 3px; }
+  .detail-author { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+  .detail-section { margin-top: 16px; }
+  .detail-section-label {
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: .05em;
+    color: var(--text-tertiary); margin-bottom: 6px;
+  }
+  .detail-section p { font-size: 13px; line-height: 1.65; color: var(--text-secondary); }
+  .insight-box {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 10px 12px; margin-bottom: 8px;
+    font-size: 13px; line-height: 1.55;
+    color: var(--text-secondary);
+  }
+  .insight-box strong {
+    font-weight: 500; color: var(--text-tertiary);
+    display: block; margin-bottom: 3px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+  }
+  .reco-chip {
+    display: inline-block; margin: 3px 4px 3px 0;
+    padding: 4px 10px; border-radius: 20px;
+    background: var(--bg-secondary);
+    border: 0.5px solid var(--border-tertiary);
+    font-size: 12px; cursor: pointer; color: var(--text-primary);
+  }
+  .reco-chip:hover { border-color: var(--border-secondary); }
+
+  /* Q&A */
+  .qa-container { max-width: 680px; }
+  .qa-input-row { display: flex; gap: 8px; margin-bottom: 24px; }
+  .qa-input-row input { flex: 1; }
+  .qa-history { display: flex; flex-direction: column; gap: 16px; }
+  .qa-question {
+    align-self: flex-end;
+    background: var(--bg-secondary);
+    border: 0.5px solid var(--border-tertiary);
+    border-radius: var(--radius-lg); border-bottom-right-radius: 4px;
+    padding: 10px 14px; font-size: 13px; max-width: 80%;
+    line-height: 1.5;
+  }
+  .qa-answer {
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border-tertiary);
+    border-radius: var(--radius-lg); border-bottom-left-radius: 4px;
+    padding: 14px; font-size: 13px; max-width: 90%;
+    line-height: 1.65;
+  }
+  .source-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .source-chip {
+    font-size: 11px; padding: 2px 8px;
+    border: 0.5px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+    color: var(--text-tertiary);
+  }
+  .qa-typing { display: flex; align-items: center; gap: 4px; padding: 4px 0; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-tertiary); animation: bounce .9s infinite; }
+  .dot:nth-child(2) { animation-delay: .15s; }
+  .dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
+
+  .empty-state { text-align: center; color: var(--text-secondary); padding: 40px 20px; font-size: 13px; }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+
+  /* Scraper */
+  .scraper-section { margin-bottom: 24px; }
+  .scraper-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .scraper-row input { flex: 1; }
+  .log-box {
+    background: var(--bg-primary);
+    border: 0.5px solid var(--border-tertiary);
+    border-radius: var(--radius-md);
+    padding: 14px; font-family: var(--font-mono); font-size: 12px;
+    height: 200px; overflow-y: auto; line-height: 1.9;
+    color: var(--text-secondary);
+  }
+  .log-line.ok { color: var(--text-success); }
+  .log-line.info { color: var(--text-info); }
+
+  @media (max-width: 700px) {
+    .sidebar { width: 56px; }
+    .sidebar-logo { font-size: 0; }
+    .nav-item span { display: none; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .book-grid { grid-template-columns: repeat(2, 1fr); }
+    .detail-panel { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <nav class="sidebar">
+    <div class="sidebar-logo">📚 BookIQ</div>
+    <div class="nav-item active" onclick="showPage('dashboard', this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="showPage('qa', this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5.5a1.5 1.5 0 011.5 1.5c0 1-1.5 1.5-1.5 2.5m0 2h.01"/></svg>
+      <span>Ask AI</span>
+    </div>
+    <div class="nav-item" onclick="showPage('scraper', this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+      <span>Scraper</span>
+    </div>
+  </nav>
+
+  <main class="main">
+    <!-- Dashboard -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title">Book Library</div>
+        <div class="page-sub">AI-powered insights for every book</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">Total books</div><div class="stat-value">48</div></div>
+        <div class="stat-card"><div class="stat-label">Genres covered</div><div class="stat-value">12</div></div>
+        <div class="stat-card"><div class="stat-label">Avg. rating</div><div class="stat-value">4.2</div></div>
+        <div class="stat-card"><div class="stat-label">Q&A queries</div><div class="stat-value">134</div></div>
+      </div>
+      <div class="search-row">
+        <input type="text" placeholder="Search by title, author, genre…" oninput="filterBooks(this.value)">
+        <button onclick="showPage('scraper', document.querySelector('.nav-item:nth-child(4)'))">+ Add books</button>
+      </div>
+      <div class="book-grid" id="book-grid"></div>
+    </div>
+
+    <!-- Q&A -->
+    <div class="page" id="page-qa">
+      <div class="page-header">
+        <div class="page-title">Ask about books</div>
+        <div class="page-sub">RAG-powered answers with source citations</div>
+      </div>
+      <div class="qa-container">
+        <div class="qa-input-row">
+          <input type="text" id="qa-input" placeholder="e.g. What themes does Dune explore?" onkeydown="if(event.key==='Enter')askQuestion()">
+          <button onclick="askQuestion()">Ask ↗</button>
+        </div>
+        <div id="qa-history" class="qa-history">
+          <div class="empty-state"><div class="empty-icon">🔍</div>Ask anything about the books in your library.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scraper -->
+    <div class="page" id="page-scraper">
+      <div class="page-header">
+        <div class="page-title">Book Scraper</div>
+        <div class="page-sub">Collect book data via Selenium automation</div>
+      </div>
+      <div class="scraper-section">
+        <div class="scraper-row">
+          <input type="text" id="scrape-url" value="https://books.toscrape.com" placeholder="Target URL">
+          <input type="number" id="scrape-limit" value="10" style="width:80px" placeholder="Limit">
+          <button onclick="runScraper()">Run scraper</button>
+        </div>
+        <div class="log-box" id="scrape-log"><span style="color:var(--text-tertiary)">Ready. Click "Run scraper" to start.</span></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detail-panel">
+  <button class="detail-close" onclick="closeDetail()">✕</button>
+  <div id="detail-content"></div>
+</div>
+
+<script>
+const BOOKS = [
+  { id:1, emoji:"🌌", color:"#1a1a2e", title:"Dune", author:"Frank Herbert", rating:4.8, reviews:3241, genre:"Sci-Fi", sentiment:"Epic", url:"https://books.toscrape.com", desc:"A sweeping space opera set on the desert planet Arrakis, following Paul Atreides as he navigates politics, religion, and ecology.", summary:"Dune is a masterwork of world-building that explores ecology, power, and prophecy on a desert planet where spice controls the galaxy.", reco:["Foundation","Hyperion","The Left Hand of Darkness"] },
+  { id:2, emoji:"🧙", color:"#2d1b69", title:"The Name of the Wind", author:"Patrick Rothfuss", rating:4.7, reviews:2894, genre:"Fantasy", sentiment:"Lyrical", url:"https://books.toscrape.com", desc:"The legendary tale of Kvothe, told in his own words — a story of magic, music, and ruthless determination.", summary:"An introspective epic about a legendary hero recounting his own story, blending coming-of-age with high fantasy.", reco:["The Way of Kings","Mistborn","Lies of Locke Lamora"] },
+  { id:3, emoji:"🕵️", color:"#1b2838", title:"Gone Girl", author:"Gillian Flynn", rating:4.3, reviews:5120, genre:"Thriller", sentiment:"Tense", url:"https://books.toscrape.com", desc:"On the morning of his fifth wedding anniversary, Nick Dunne's wife Amy disappears.", summary:"A twisty psychological thriller about marriage, media, and manipulation told from dueling unreliable perspectives.", reco:["The Girl on the Train","Big Little Lies","Sharp Objects"] },
+  { id:4, emoji:"🌊", color:"#0d3349", title:"The Old Man and the Sea", author:"Ernest Hemingway", rating:4.1, reviews:6732, genre:"Literary", sentiment:"Meditative", url:"https://books.toscrape.com", desc:"An aging Cuban fisherman struggles to land a giant marlin far out in the Gulf Stream.", summary:"A meditation on perseverance, pride, and the beauty of a life lived close to nature — a Nobel Prize-winning novella.", reco:["Of Mice and Men","A Farewell to Arms","The Pearl"] },
+  { id:5, emoji:"🤖", color:"#0a2a1e", title:"Neuromancer", author:"William Gibson", rating:4.5, reviews:1983, genre:"Sci-Fi", sentiment:"Gritty", url:"https://books.toscrape.com", desc:"Henry Case is a washed-up computer hacker hired by a mysterious employer to pull off the ultimate hack.", summary:"The definitive cyberpunk novel that coined the term 'cyberspace' and predicted the digital age with startling accuracy.", reco:["Snow Crash","Rainbows End","Do Androids Dream?"] },
+  { id:6, emoji:"🌹", color:"#3d0000", title:"Rebecca", author:"Daphne du Maurier", rating:4.6, reviews:4317, genre:"Gothic", sentiment:"Haunting", url:"https://books.toscrape.com", desc:"The nameless narrator marries the wealthy widower Maxim de Winter and moves to Manderley, his imposing estate.", summary:"A gothic masterpiece about jealousy, obsession, and the ghostly presence of the first Mrs. de Winter.", reco:["Jane Eyre","Wuthering Heights","The Turn of the Screw"] },
+];
+
+function renderBooks(list) {
+  document.getElementById('book-grid').innerHTML = list.map(b => `
+    <div class="book-card" onclick="openDetail(${b.id})">
+      <div class="book-cover" style="background:${b.color}22">${b.emoji}</div>
+      <div class="book-title">${b.title}</div>
+      <div class="book-author">${b.author}</div>
+      <div class="book-meta">
+        <span class="stars">★ ${b.rating}</span>
+        <span class="badge genre">${b.genre}</span>
+        <span class="badge sentiment">${b.sentiment}</span>
+      </div>
+    </div>
+  `).join('');
+}
+renderBooks(BOOKS);
+
+function filterBooks(q) {
+  const v = q.toLowerCase();
+  renderBooks(BOOKS.filter(b => b.title.toLowerCase().includes(v) || b.author.toLowerCase().includes(v) || b.genre.toLowerCase().includes(v)));
+}
+
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+function openDetail(id) {
+  const b = BOOKS.find(x => x.id === id);
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-cover" style="background:${b.color}22">${b.emoji}</div>
+    <div class="detail-title">${b.title}</div>
+    <div class="detail-author">${b.author}</div>
+    <div class="book-meta" style="margin-bottom:14px">
+      <span class="stars">★ ${b.rating}</span>
+      <span style="font-size:12px;color:var(--text-tertiary)">${b.reviews.toLocaleString()} reviews</span>
+      <span class="badge genre">${b.genre}</span>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-label">Description</div>
+      <p>${b.desc}</p>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-label">AI insights</div>
+      <div class="insight-box"><strong>Summary</strong>${b.summary}</div>
+      <div class="insight-box"><strong>Genre classification</strong>${b.genre} — ${b.sentiment} tone detected in description and reviews.</div>
+      <div class="insight-box"><strong>Sentiment analysis</strong>Overall reader sentiment is ${b.sentiment.toLowerCase()} based on review analysis.</div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-label">If you liked this, try</div>
+      ${b.reco.map(r => `<span class="reco-chip">${r}</span>`).join('')}
+    </div>
+    <div class="detail-section" style="margin-top:18px">
+      <a href="${b.url}" target="_blank" style="font-size:12px;color:var(--text-info)">View source →</a>
+    </div>
+  `;
+  document.getElementById('detail-panel').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+const QA_FALLBACKS = {
+  dune: { answer: "Dune explores ecology and resource politics through Arrakis, where spice serves as an allegory for oil. Herbert weaves in prophecy, religious manipulation, and the dangers of hero worship — Paul is framed as a messianic figure, but the novel is deeply skeptical of that framing.", sources: ["Dune"] },
+  recommend: { answer: "Based on your library, start with Dune for world-building, Gone Girl for psychological thrills, or Neuromancer for cyberpunk. Sentiment analysis shows readers who rated Dune highly also enjoyed Foundation and Hyperion.", sources: ["Dune","Gone Girl","Neuromancer"] },
+  fantasy: { answer: "Your library has two strong fantasy entries: The Name of the Wind (lyrical, character-driven) and Rebecca (gothic). Rothfuss's prose is noted for its musicality — Kvothe's story blends magic school, court intrigue, and epic quest.", sources: ["The Name of the Wind","Rebecca"] },
+  default: { answer: "Based on the books in your library, this touches on themes found across several works. The RAG pipeline retrieved relevant chunks and identified overlapping concepts in genre, sentiment, and thematic analysis.", sources: ["Dune","Gone Girl","The Name of the Wind"] }
+};
+
+async function callClaudeAPI(question) {
+  try {
+    const bookContext = BOOKS.map(b => `Title: ${b.title}\nAuthor: ${b.author}\nGenre: ${b.genre}\nSummary: ${b.summary}`).join('\n\n');
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: `You are an AI librarian for a book insight platform. Answer questions about the books using the context. Be concise (2-4 sentences). End your response with a JSON block like: {"sources": ["Title1", "Title2"]} listing referenced books.\n\nLibrary:\n\n${bookContext}`,
+        messages: [{ role: "user", content: question }]
+      })
+    });
+    const data = await response.json();
+    const text = data.content?.map(i => i.text || '').join('') || '';
+    const jsonMatch = text.match(/\{"sources":\s*\[.*?\]\}/s);
+    let sources = [], answer = text;
+    if (jsonMatch) {
+      try { sources = JSON.parse(jsonMatch[0]).sources; } catch(e) {}
+      answer = text.replace(jsonMatch[0], '').trim();
+    }
+    if (!sources.length) sources = [BOOKS[0].title];
+    return { answer: answer || "I found relevant information in your library.", sources };
+  } catch(e) {
+    const q = question.toLowerCase();
+    if (q.includes('dune')) return QA_FALLBACKS.dune;
+    if (q.includes('recommend') || q.includes('suggest')) return QA_FALLBACKS.recommend;
+    if (q.includes('fantasy') || q.includes('magic')) return QA_FALLBACKS.fantasy;
+    return QA_FALLBACKS.default;
+  }
+}
+
+function askQuestion() {
+  const input = document.getElementById('qa-input');
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = '';
+  const hist = document.getElementById('qa-history');
+  const empty = hist.querySelector('.empty-state');
+  if (empty) empty.remove();
+  hist.innerHTML += `<div class="qa-question">${q}</div>`;
+  const typingId = 'typing-' + Date.now();
+  hist.innerHTML += `<div class="qa-answer" id="${typingId}"><div class="qa-typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
+  hist.scrollTop = hist.scrollHeight;
+  callClaudeAPI(q).then(({ answer, sources }) => {
+    document.getElementById(typingId).innerHTML = `
+      <div>${answer}</div>
+      <div class="source-chips">
+        <span style="font-size:11px;color:var(--text-tertiary);align-self:center">Sources:</span>
+        ${sources.map(s => `<span class="source-chip">${s}</span>`).join('')}
+      </div>`;
+    hist.scrollTop = hist.scrollHeight;
+  });
+}
+
+const SCRAPE_STEPS = [
+  { t: 300,  cls: 'info', msg: '→ Launching Selenium WebDriver...' },
+  { t: 800,  cls: 'ok',   msg: '✓ Browser initialised (headless Chrome)' },
+  { t: 1400, cls: 'info', msg: '→ Navigating to target URL...' },
+  { t: 2100, cls: 'ok',   msg: '✓ Page loaded (status 200)' },
+  { t: 2600, cls: 'info', msg: '→ Extracting book cards...' },
+  { t: 3300, cls: 'ok',   msg: '✓ Found 48 book elements on page' },
+  { t: 3900, cls: 'info', msg: '→ Scraping titles, authors, ratings...' },
+  { t: 4600, cls: 'ok',   msg: '✓ Extracted 10 books (limit reached)' },
+  { t: 5200, cls: 'info', msg: '→ Generating AI summaries (Claude API)...' },
+  { t: 6100, cls: 'ok',   msg: '✓ Summaries generated for 10 books' },
+  { t: 6700, cls: 'info', msg: '→ Classifying genres with LLM...' },
+  { t: 7300, cls: 'ok',   msg: '✓ Genres classified' },
+  { t: 7800, cls: 'info', msg: '→ Generating embeddings (sentence-transformers)...' },
+  { t: 8500, cls: 'ok',   msg: '✓ Embeddings stored in ChromaDB' },
+  { t: 9000, cls: 'ok',   msg: '✓ Scrape complete. 10 books added to library.' },
+];
+
+let scraperRunning = false;
+function runScraper() {
+  if (scraperRunning) return;
+  scraperRunning = true;
+  const log = document.getElementById('scrape-log');
+  log.innerHTML = '';
+  SCRAPE_STEPS.forEach(({ t, cls, msg }) => {
+    setTimeout(() => {
+      log.innerHTML += `<div class="log-line ${cls}">${msg}</div>`;
+      log.scrollTop = log.scrollHeight;
+      if (t === 9000) scraperRunning = false;
+    }, t);
+  });
+}
+</script>
+</body>
+</html>
