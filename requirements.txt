@@ -1,0 +1,6 @@
+# Frontend Environment
+lucide-icons==latest (CDN)
+google-fonts (Inter, Space Grotesk)
+
+# Development Tools
+VS Code Live Server (recommended)
